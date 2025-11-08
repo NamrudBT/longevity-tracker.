@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Longevity" />
+  <title>Longevity Protocol Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">Power</div>
+      <div class="loading-text">Longevity Protocol</div>
+      <div class="loading-spinner"></div>
+    </div>
+  </div>
+
+  <!-- Install Banner -->
+  <div id="install-banner" class="install-banner" style="display:none;">
+    Install Longevity Tracker on your home screen
+    <button onclick="installApp()" class="install-btn">Install</button>
+    <button onclick="this.parentElement.style.display='none'" class="close-btn">x</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Medical Clearance Modal -->
+  <div id="clearance-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Medical Clearance Required</h2></div>
+      <div class="modal-body">
+        <p><strong>Before starting Phase Zero:</strong></p>
+        <ul class="safety-list">
+          <li>Obtain physician clearance</li>
+          <li>No active contraindications</li>
+          <li>Understand exercise risks</li>
+        </ul>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:16px;">
+          <input type="checkbox" id="clearance-check" onchange="toggleClearanceBtn()" />
+          <span>I have medical clearance to begin</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="confirm-clearance-btn" disabled onclick="confirmClearance()">Start Protocol</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="app" style="display:none;">
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-view="today"><span class="nav-icon">Calendar</span><span class="nav-label">Today</span></button>
+      <button class="nav-btn" data-view="workout"><span class="nav-icon">Weightlifter</span><span class="nav-label">Workout</span></button>
+      <button class="nav-btn" data-view="progress"><span class="nav-icon">Chart</span><span class="nav-label">Progress</span></button>
+      <button class="nav-btn" data-view="health"><span class="nav-icon">Heart</span><span class="nav-label">Health</span></button>
+      <button class="nav-btn" data-view="settings"><span class="nav-icon">Gear</span><span class="nav-label">Settings</span></button>
+    </nav>
+
+    <!-- TODAY VIEW -->
+    <div id="today-view" class="view active">
+      <div class="view-header"><h1>Today</h1><div class="date-display" id="current-date"></div></div>
+      <div class="view-content">
+        <div class="card phase-card">
+          <div class="card-header"><h2>Current Phase</h2></div>
+          <div class="card-content">
+            <div class="phase-info">
+              <div class="phase-name" id="current-phase-name">Phase Zero</div>
+              <div class="phase-week">Week <span id="current-week">1</span> of 52</div>
+              <div class="phase-progress">
+                <div class="progress-bar"><div class="progress-fill" id="phase-progress-fill" style="width:0%"></div></div>
+                <div class="progress-text"><span id="phase-progress-percent">0</span>% Complete</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card workout-card">
+          <div class="card-header"><h2>Today's Workout</h2><button class="btn-primary" onclick="startWorkout()">Start Workout</button></div>
+          <div class="card-content"><div id="today-workout-content"></div></div>
+        </div>
+
+        <div class="card metrics-card">
+          <div class="card-header"><h2>Health Metrics</h2><button class="btn-secondary" onclick="openHealthModal()">Log</button></div>
+          <div class="card-content">
+            <div class="metrics-grid" id="today-metrics">
+              <div class="metric-item"><div class="metric-icon">Stethoscope</div><div class="metric-label">BP</div><div class="metric-value" id="bp-value">--/--</div></div>
+              <div class="metric-item"><div class="metric-icon">Balance</div><div class="metric-label">Weight</div><div class="metric-value" id="weight-value">--</div></div>
+              <div class="metric-item"><div class="metric-icon">No Smoking</div><div class="metric-label">Smoke-Free</div><div class="metric-value" id="smoke-free-days">0</div></div>
+              <div class="metric-item"><div class="metric-icon">No Alcohol</div><div class="metric-label">Alcohol-Free</div><div class="metric-value" id="alcohol-free-days">0</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card habits-card">
+          <div class="card-header"><h2>Daily Habits</h2></div>
+          <div class="card-content"><div class="habits-list" id="habits-list"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKOUT VIEW -->
+    <div id="workout-view" class="view">
+      <div class="view-header"><h1>Workout</h1></div>
+      <div class="view-content"><div id="workout-content"></div></div>
+    </div>
+
+    <!-- PROGRESS VIEW -->
+    <div id="progress-view" class="view">
+      <div class="view-header"><h1>Progress</h1></div>
+      <div class="view-content">
+        <div class="card"><canvas id="weight-chart" height="180"></canvas></div>
+        <div class="card"><canvas id="bp-chart" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <!-- HEALTH VIEW -->
+    <div id="health-view" class="view">
+      <div class="view-header"><h1>Health History</h1></div>
+      <div class="view-content">
+        <div class="card warning-card">
+          <div class="card-header">Safety First</div>
+          <div class="card-content">
+            <ul class="safety-list">
+              <li><strong>Scoliosis:</strong> Avoid barbell squats & twisting</li>
+              <li><strong>High BP:</strong> Exhale on effort, no breath-holding</li>
+              <li><strong>Gout:</strong> Stop during flare-ups</li>
+              <li><strong>Warm-up:</strong> 5-10 min mandatory</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Log History</h2><button class="btn-primary" onclick="openHealthModal()">Add</button></div>
+          <div class="card-content"><div id="health-history"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="settings-view" class="view">
+      <div class="view-header"><h1>Settings</h1></div>
+      <div class="view-content">
+        <div class="card">
+          <div class="card-header"><h2>Protocol</h2></div>
+          <div class="card-content">
+            <div class="settings-group"><label>Start Date</label><input type="date" id="start-date-input" /></div>
+            <div class="settings-group"><label>Current Week</label><input type="number" id="current-week-input" min="1" max="52" /></div>
+            <button class="btn-primary full-width" onclick="saveSettings()">Save</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Data</h2></div>
+          <div class="card-content">
+            <button class="btn-secondary full-width" onclick="exportData()">Export JSON</button>
+            <label class="file-label">Import JSON <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)" /></label>
+            <button class="btn-danger full-width" onclick="resetAllData()">Reset All</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Appearance</h2></div>
+          <div class="card-content">
+            <label><input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()" /> Dark Mode (Auto)</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal-overlay" class="modal-overlay"><div id="modal-content" class="modal-content"></div></div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  </script>
+</body>
+</html>
